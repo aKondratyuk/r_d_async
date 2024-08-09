@@ -66,6 +66,10 @@ def main():
         logger.error(f"Файл {args.file} не знайдено")
         sys.exit(1)
 
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+        logger.debug(f"Створено папку, куди буде завантажено контент: {args.output_dir}")
+
     with open(args.file, "r") as file:
         urls: list[str] = file.readlines()
 
