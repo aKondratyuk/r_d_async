@@ -22,6 +22,7 @@ class WeatherClientProtocol(asyncio.Protocol):
         logger.info(f"Погодні дані: {data.decode()}")
 
     def connection_lost(self, exc: Exception | None) -> None:
+        asyncio.get_event_loop().stop()
         logger.info("Відключено від серверу")
 
 
@@ -31,15 +32,27 @@ async def main():
     transport: asyncio.Transport
     protocol: WeatherClientProtocol
 
-    transport, protocol = await loop.create_connection(
-        lambda: WeatherClientProtocol(),
-        HOST, PORT
-    )
-
     try:
-        await asyncio.sleep(3600)
-    finally:
-        transport.close()
+        transport, protocol = await asyncio.wait_for(
+            loop.create_connection(
+                lambda: WeatherClientProtocol(),
+                HOST, PORT
+            ),
+            timeout=10
+        )
+
+        try:
+            await asyncio.sleep(3600)
+        finally:
+            transport.close()
+
+    except asyncio.TimeoutError:
+        logger.exception("Вичерпано час очікування на підключення")
+    except ConnectionRefusedError:
+        logger.exception("Не можливо доєднатись до северу")
+    except Exception as ex:
+        logger.exception(f"Непередбачувана помилка {ex}")
+
 
 if __name__ == '__main__':
     asyncio.run(main())
